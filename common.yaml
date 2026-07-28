@@ -1,0 +1,6 @@
+# Small package pulled in by sample.yaml. It is listed under source_archive's
+# `files:` so that it ends up in the archive alongside sample.yaml itself.
+
+sensor:
+  - platform: uptime
+    name: Uptime

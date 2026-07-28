@@ -1,0 +1,40 @@
+# Minimal ESPHome configuration demonstrating the source_archive component.
+#
+# Compile it straight from a clone of this repository, with a secrets.yaml
+# alongside it defining wifi_ssid and wifi_password:
+#
+#   esphome compile sample.yaml
+#
+# Paths under `files:` and `js_include:` are relative to the directory holding
+# this file.
+
+esphome:
+  name: source-archive-demo
+
+esp32:
+  board: esp32dev
+
+logger:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+packages:
+  - !include common.yaml
+
+# The archive is served over HTTP, so web_server is required.
+web_server:
+  # Optional: adds a "Download source" button to the device page.
+  js_include: components/source_archive/source_archive_link.js
+
+external_components:
+  - source: github://borisfeldman/source-archive
+    components: [source_archive]
+
+source_archive:
+  filename: source-archive-demo.zip
+  download_path: /source.zip
+  # sample.yaml is embedded by default; included packages have to be listed.
+  files:
+    - common.yaml
