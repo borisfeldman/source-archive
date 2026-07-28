@@ -27,7 +27,7 @@ web_server:
 
 external_components:
   # Pinned so a config recovered from the archive still compiles years from now.
-  - source: github://borisfeldman/source-archive@v1.1.0
+  - source: github://borisfeldman/source-archive@v1.2.0
     components: [source_archive]
     refresh: never
 
