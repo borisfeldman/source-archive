@@ -1,6 +1,18 @@
 // Keep in sync with the source_archive component's `download_path` option.
 const DOWNLOAD_PATH = "/source.zip";
 
+const LABEL = "Download source";
+const TITLE = "Download the ESPHome source archive";
+const ERROR_LABEL = "Source unavailable";
+const ERROR_RESET_MS = 5000;
+
+const filenameFrom = (response) => {
+  const match = (response.headers.get("Content-Disposition") || "").match(
+    /filename="([^"]+)"/
+  );
+  return match ? match[1] : DOWNLOAD_PATH.replace(/^.*\//, "") || "source.zip";
+};
+
 const addSourceArchiveLink = () => {
   if (document.querySelector("[data-source-archive-link]")) {
     return;
@@ -30,6 +42,10 @@ const addSourceArchiveLink = () => {
       filter: brightness(0.92);
     }
 
+    .source-archive-link--error {
+      background: var(--error-color, #db4437);
+    }
+
     .source-archive-link:focus-visible {
       outline: 3px solid var(--primary-color, #03a9f4);
       outline-offset: 3px;
@@ -50,9 +66,56 @@ const addSourceArchiveLink = () => {
   link.dataset.sourceArchiveLink = "";
   link.href = DOWNLOAD_PATH;
   link.download = "";
-  link.textContent = "Download source";
-  link.title = "Download the ESPHome source archive";
+  link.textContent = LABEL;
+  link.title = TITLE;
   document.body.append(link);
+
+  let resetTimer;
+  const fail = (message, error) => {
+    console.error("source_archive:", message, error || "");
+    clearTimeout(resetTimer);
+    link.classList.add("source-archive-link--error");
+    link.textContent = ERROR_LABEL;
+    link.title = message;
+    resetTimer = setTimeout(() => {
+      link.classList.remove("source-archive-link--error");
+      link.textContent = LABEL;
+      link.title = TITLE;
+    }, ERROR_RESET_MS);
+  };
+
+  link.addEventListener("click", async (event) => {
+    event.preventDefault();
+
+    let response;
+    try {
+      response = await fetch(DOWNLOAD_PATH, { cache: "no-store" });
+    } catch (error) {
+      fail("Could not reach the device to download the archive.", error);
+      return;
+    }
+
+    if (!response.ok) {
+      fail(
+        `The device answered ${response.status} for ${DOWNLOAD_PATH}. Check that the ` +
+          `source_archive component is configured and that its download_path matches.`
+      );
+      return;
+    }
+
+    const blob = await response.blob();
+    if (blob.size === 0) {
+      fail("The device returned an empty archive.");
+      return;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const download = document.createElement("a");
+    download.href = url;
+    download.download = filenameFrom(response);
+    download.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
 };
 
 if (document.readyState === "loading") {

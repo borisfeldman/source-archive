@@ -146,6 +146,17 @@ ESPHome serves the file as `/0.js` in addition to the regular web interface scri
 standard UI keeps working. The button links to `/source.zip`; if you changed
 `download_path`, update `DOWNLOAD_PATH` at the top of the script to match.
 
+> [!IMPORTANT]
+> `js_include` and `source_archive:` are independent settings. Including the script without
+> configuring the component leaves a button on the page with nothing behind it: no
+> `/source.zip` route is registered, so the request falls through to the web server's 404.
+
+The button fetches the archive and checks the response before saving it. If the device
+answers with an error — usually because `source_archive:` is missing from the configuration
+or `download_path` no longer matches `DOWNLOAD_PATH` — it turns red and reports
+**Source unavailable** rather than saving the error response to disk. The reason is in the
+`title` attribute and the browser console.
+
 <!-- screenshot: Download source button, close-up -->
 
 ## Logs
