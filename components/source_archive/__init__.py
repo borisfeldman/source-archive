@@ -10,22 +10,27 @@ import zipfile
 
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, __version__ as ESPHOME_VERSION
+from esphome.const import CONF_ID, CONF_JS_INCLUDE, __version__ as ESPHOME_VERSION
 from esphome.core import CORE, EsphomeError
+import esphome.final_validate as fv
 
 CODEOWNERS = ["@borisfeldman"]
 DEPENDENCIES = ["web_server"]
 AUTO_LOAD = ["web_server_base"]
 
 # Bump together with the git tag that releases it.
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
+CONF_DOWNLOAD_BUTTON = "download_button"
 CONF_DOWNLOAD_PATH = "download_path"
 CONF_FILENAME = "filename"
 CONF_FILES = "files"
 CONF_INCLUDE_CURRENT_CONFIG = "include_current_config"
 CONF_MAX_SIZE = "max_size"
 CONF_RAW_DATA_ID = "raw_data_id"
+
+WEB_SERVER_DOMAIN = "web_server"
+BUTTON_SCRIPT = "source_archive_link.js"
 
 source_archive_ns = cg.esphome_ns.namespace("source_archive")
 SourceArchive = source_archive_ns.class_("SourceArchive", cg.Component)
@@ -34,6 +39,8 @@ LOGGER = logging.getLogger(__name__)
 
 # Interpolated unquoted into the Content-Disposition header, so keep it boring.
 _FILENAME_RE = re.compile(r"^[A-Za-z0-9._-]+\.zip$")
+
+_DOWNLOAD_PATH_RE = re.compile(r'^const DOWNLOAD_PATH = "[^"]*";$', re.MULTILINE)
 
 
 def _validate_download_path(value: str) -> str:
@@ -90,11 +97,50 @@ CONFIG_SCHEMA = cv.All(
             ): _validate_download_path,
             cv.Optional(CONF_FILENAME, default="esphome-source.zip"): _validate_filename,
             cv.Optional(CONF_MAX_SIZE, default="64kB"): cv.validate_bytes,
+            cv.Optional(CONF_DOWNLOAD_BUTTON, default=False): cv.boolean,
         }
     ).extend(cv.COMPONENT_SCHEMA),
     cv.require_esphome_version(2026, 2, 0),
     _validate_has_sources,
 )
+
+
+def _generate_button_script(download_path: str) -> Path:
+    bundled = Path(__file__).parent / BUTTON_SCRIPT
+    script, replaced = _DOWNLOAD_PATH_RE.subn(
+        f"const DOWNLOAD_PATH = {json.dumps(download_path)};",
+        bundled.read_text(encoding="utf-8"),
+    )
+    if replaced != 1:
+        raise cv.Invalid(f"could not set DOWNLOAD_PATH in {BUTTON_SCRIPT}")
+
+    # web_server reads js_include off the filesystem, so the script has to land somewhere.
+    generated = CORE.relative_internal_path("source_archive", BUTTON_SCRIPT)
+    generated.parent.mkdir(parents=True, exist_ok=True)
+    generated.write_text(script, encoding="utf-8")
+    return generated
+
+
+def _final_validate(config):
+    if not config[CONF_DOWNLOAD_BUTTON]:
+        return config
+
+    web_server_config = fv.full_config.get()[WEB_SERVER_DOMAIN]
+    if CONF_JS_INCLUDE in web_server_config:
+        raise cv.Invalid(
+            f"'{CONF_DOWNLOAD_BUTTON}' points web_server's '{CONF_JS_INCLUDE}' at a "
+            f"generated script, but '{CONF_JS_INCLUDE}' is already set and web_server "
+            f"accepts only one. Either drop '{CONF_DOWNLOAD_BUTTON}' and add the button "
+            f"to your own script, or remove '{CONF_JS_INCLUDE}'."
+        )
+
+    web_server_config[CONF_JS_INCLUDE] = str(
+        _generate_button_script(config[CONF_DOWNLOAD_PATH])
+    )
+    return config
+
+
+FINAL_VALIDATE_SCHEMA = _final_validate
 
 
 def _zip_info(filename: str) -> zipfile.ZipInfo:

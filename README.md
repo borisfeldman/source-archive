@@ -18,7 +18,7 @@ matches the running firmware.
 ```yaml
 # Example configuration entry
 external_components:
-  - source: github://borisfeldman/source-archive@v1.0.0
+  - source: github://borisfeldman/source-archive@v1.1.0
     components: [source_archive]
     refresh: never
 
@@ -47,6 +47,8 @@ containing `bedroom-lamp.yaml`, both packages and a manifest.
   `esphome-source.zip`.
 - **max_size** (*Optional*, bytes): Refuse to build if the compressed archive grows beyond
   this size. Defaults to `64kB`.
+- **download_button** (*Optional*, boolean): Add a **Download source** button to the device
+  web interface. Defaults to `false`.
 - **id** (*Optional*, [ID](https://esphome.io/guides/configuration-types#id)): Manually
   specify the ID used for code generation.
 
@@ -88,7 +90,7 @@ for every entry:
 
 ```json
 {
-  "component_version": "1.0.0",
+  "component_version": "1.1.0",
   "configuration": "bedroom-lamp.yaml",
   "esphome_version": "2026.7.3",
   "files": [
@@ -136,30 +138,71 @@ Use `sha256sum -c` in place of `shasum -a 256 -c` on Linux.
 
 ## Adding a download button to the web interface
 
-`source_archive_link.js` adds a floating **Download source** button to the device page.
-Copy it next to your configuration and point `js_include` at it:
+Set `download_button`, and a floating **Download source** button appears on the device page:
+
+```yaml
+web_server:
+
+source_archive:
+  download_button: true
+  files:
+    - packages/wifi.yaml
+```
+
+Nothing needs copying into your configuration directory. The component generates the button
+script with your `download_path` already substituted, writes it into ESPHome's internal data
+directory, and points `web_server`'s `js_include` at it during final validation. Change
+`download_path` and the button follows.
+
+ESPHome serves the script as `/0.js` alongside the regular web interface script, so the
+standard UI keeps working.
+
+The button fetches the archive and checks the response before saving it. If the device
+answers with an error it turns red and reports **Source unavailable** rather than saving the
+error response to disk; the reason is in the `title` attribute and the browser console.
+
+<!-- screenshot: Download source button, close-up -->
+
+### Wiring the script up yourself
+
+`web_server` accepts exactly one `js_include`. If you already use it for your own script,
+`download_button` fails validation rather than overwriting it — merge the button into your
+script instead, starting from
+[source_archive_link.js](components/source_archive/source_archive_link.js).
+
+The same applies if you would rather manage the file yourself. Copy it next to your
+configuration and point `js_include` at it, leaving `download_button` off:
 
 ```yaml
 web_server:
   js_include: source_archive_link.js
 ```
 
-ESPHome serves the file as `/0.js` in addition to the regular web interface script, so the
-standard UI keeps working. The button links to `/source.zip`; if you changed
-`download_path`, update `DOWNLOAD_PATH` at the top of the script to match.
+`js_include` resolves relative to your configuration directory and cannot reach the script
+that `external_components` downloads — that lives under ESPHome's data directory, in a
+folder named after a hash of the repository URL and ref, so the path changes whenever you
+bump the pin. Fetch a copy from the tag instead:
+
+```bash
+cd /config
+curl -fsSLo source_archive_link.js \
+  https://raw.githubusercontent.com/borisfeldman/source-archive/v1.1.0/components/source_archive/source_archive_link.js
+```
+
+Pointing `js_include` at a path that is not there fails validation before anything else
+runs:
+
+```
+Could not find file '/config/components/source_archive/source_archive_link.js'.
+```
+
+On this route the path is yours to maintain: `DOWNLOAD_PATH` at the top of the script has to
+match `download_path` by hand.
 
 > [!IMPORTANT]
-> `js_include` and `source_archive:` are independent settings. Including the script without
+> A hand-wired `js_include` is independent of `source_archive:`. Including the script without
 > configuring the component leaves a button on the page with nothing behind it: no
 > `/source.zip` route is registered, so the request falls through to the web server's 404.
-
-The button fetches the archive and checks the response before saving it. If the device
-answers with an error — usually because `source_archive:` is missing from the configuration
-or `download_path` no longer matches `DOWNLOAD_PATH` — it turns red and reports
-**Source unavailable** rather than saving the error response to disk. The reason is in the
-`title` attribute and the browser console.
-
-<!-- screenshot: Download source button, close-up -->
 
 ## Versioning
 
@@ -176,7 +219,7 @@ Pin to a tag, and set `refresh: never` so ESPHome stops re-checking the reposito
 
 ```yaml
 external_components:
-  - source: github://borisfeldman/source-archive@v1.0.0
+  - source: github://borisfeldman/source-archive@v1.1.0
     components: [source_archive]
     refresh: never
 ```
@@ -195,7 +238,7 @@ tells you which tag to pin if the configuration never was:
 
 ```json
 {
-  "component_version": "1.0.0",
+  "component_version": "1.1.0",
   "esphome_version": "2026.7.3",
   "format": 1
 }
@@ -208,7 +251,7 @@ tells you which tag to pin if the configuration never was:
 ESPHome reports what went into the firmware while compiling:
 
 ```
-INFO source_archive 1.0.0 embedded 3 files in bedroom-lamp-source.zip (2847 bytes)
+INFO source_archive 1.1.0 embedded 3 files in bedroom-lamp-source.zip (2847 bytes)
 ```
 
 and the device repeats it on boot:

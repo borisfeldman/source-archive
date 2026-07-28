@@ -5,8 +5,7 @@
 #
 #   esphome compile sample.yaml
 #
-# Paths under `files:` and `js_include:` are relative to the directory holding
-# this file.
+# Paths under `files:` are relative to the directory holding this file.
 
 esphome:
   name: source-archive-demo
@@ -25,16 +24,16 @@ packages:
 
 # The archive is served over HTTP, so web_server is required.
 web_server:
-  # Optional: adds a "Download source" button to the device page.
-  js_include: components/source_archive/source_archive_link.js
 
 external_components:
   # Pinned so a config recovered from the archive still compiles years from now.
-  - source: github://borisfeldman/source-archive@v1.0.0
+  - source: github://borisfeldman/source-archive@v1.1.0
     components: [source_archive]
     refresh: never
 
 source_archive:
+  # Generates the button script and wires it into web_server for you.
+  download_button: true
   filename: source-archive-demo.zip
   download_path: /source.zip
   # sample.yaml is embedded by default; included packages have to be listed.
