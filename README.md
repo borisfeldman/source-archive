@@ -18,8 +18,9 @@ matches the running firmware.
 ```yaml
 # Example configuration entry
 external_components:
-  - source: github://borisfeldman/source-archive
+  - source: github://borisfeldman/source-archive@v1.0.0
     components: [source_archive]
+    refresh: never
 
 web_server:
 
@@ -87,6 +88,7 @@ for every entry:
 
 ```json
 {
+  "component_version": "1.0.0",
   "configuration": "bedroom-lamp.yaml",
   "esphome_version": "2026.7.3",
   "files": [
@@ -159,12 +161,54 @@ or `download_path` no longer matches `DOWNLOAD_PATH` — it turns red and report
 
 <!-- screenshot: Download source button, close-up -->
 
+## Versioning
+
+Releases are tagged `vMAJOR.MINOR.PATCH`. The public surface is the YAML schema and the
+archive layout:
+
+- **MAJOR** — a configuration that used to validate no longer does: an option renamed or
+  removed, a new required option, or a changed default that alters what lands in the
+  archive.
+- **MINOR** — new optional options, or additions to `SOURCE-MANIFEST.json`.
+- **PATCH** — fixes that leave both the schema and the archive layout alone.
+
+Pin to a tag, and set `refresh: never` so ESPHome stops re-checking the repository:
+
+```yaml
+external_components:
+  - source: github://borisfeldman/source-archive@v1.0.0
+    components: [source_archive]
+    refresh: never
+```
+
+This matters more here than for most components. An unpinned source tracks the default
+branch and refreshes daily, so a configuration recovered from an archive may fail to
+validate against a later release — the archive would preserve your YAML perfectly and still
+leave you unable to rebuild it. Because the archive stores that YAML verbatim, a pin
+travels inside it: the recovered configuration asks for the exact component version that
+built the firmware.
+
+The component's own source cannot be archived — `external_components` places it under
+`.esphome/`, outside the configuration directory, where [files](#configuration-variables)
+is not allowed to reach. `SOURCE-MANIFEST.json` records the version instead, which is what
+tells you which tag to pin if the configuration never was:
+
+```json
+{
+  "component_version": "1.0.0",
+  "esphome_version": "2026.7.3",
+  "format": 1
+}
+```
+
+`format` versions the manifest layout itself, independently of the component release.
+
 ## Logs
 
 ESPHome reports what went into the firmware while compiling:
 
 ```
-INFO Embedded 3 source files in bedroom-lamp-source.zip (2847 bytes)
+INFO source_archive 1.0.0 embedded 3 files in bedroom-lamp-source.zip (2847 bytes)
 ```
 
 and the device repeats it on boot:

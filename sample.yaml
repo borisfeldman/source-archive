@@ -29,8 +29,10 @@ web_server:
   js_include: components/source_archive/source_archive_link.js
 
 external_components:
-  - source: github://borisfeldman/source-archive
+  # Pinned so a config recovered from the archive still compiles years from now.
+  - source: github://borisfeldman/source-archive@v1.0.0
     components: [source_archive]
+    refresh: never
 
 source_archive:
   filename: source-archive-demo.zip

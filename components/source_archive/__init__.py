@@ -17,6 +17,9 @@ CODEOWNERS = ["@borisfeldman"]
 DEPENDENCIES = ["web_server"]
 AUTO_LOAD = ["web_server_base"]
 
+# Bump together with the git tag that releases it.
+VERSION = "1.0.0"
+
 CONF_DOWNLOAD_PATH = "download_path"
 CONF_FILENAME = "filename"
 CONF_FILES = "files"
@@ -133,6 +136,7 @@ def _build_archive(config) -> tuple[bytes, int]:
 
     manifest = json.dumps(
         {
+            "component_version": VERSION,
             "configuration": Path(CORE.config_path).name,
             "esphome_version": ESPHOME_VERSION,
             "files": manifest_files,
@@ -176,7 +180,8 @@ async def to_code(config):
     cg.add(var.set_filename(config[CONF_FILENAME]))
 
     LOGGER.info(
-        "Embedded %s source files in %s (%d bytes)",
+        "source_archive %s embedded %s files in %s (%d bytes)",
+        VERSION,
         file_count,
         config[CONF_FILENAME],
         len(archive),
