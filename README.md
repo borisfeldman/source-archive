@@ -41,8 +41,9 @@ containing `bedroom-lamp.yaml`, both packages and a manifest.
   compiled. Defaults to `true`.
 - **download_path** (*Optional*, string): The URL path the archive is served from. Must be
   absolute and must not contain a query string or fragment. Defaults to `/source.zip`.
-- **filename** (*Optional*, string): The name the browser saves the download as. Must be a
-  plain filename ending in `.zip`. Defaults to `esphome-source.zip`.
+- **filename** (*Optional*, string): The name the browser saves the download as. Must end
+  in `.zip` and use only letters, digits, dots, dashes and underscores. Defaults to
+  `esphome-source.zip`.
 - **max_size** (*Optional*, bytes): Refuse to build if the compressed archive grows beyond
   this size. Defaults to `64kB`.
 - **id** (*Optional*, [ID](https://esphome.io/guides/configuration-types#id)): Manually
@@ -143,7 +144,7 @@ web_server:
 
 ESPHome serves the file as `/0.js` in addition to the regular web interface script, so the
 standard UI keeps working. The button links to `/source.zip`; if you changed
-`download_path`, update `link.href` in the script to match.
+`download_path`, update `DOWNLOAD_PATH` at the top of the script to match.
 
 <!-- screenshot: Download source button, close-up -->
 

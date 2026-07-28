@@ -1,3 +1,6 @@
+// Keep in sync with the source_archive component's `download_path` option.
+const DOWNLOAD_PATH = "/source.zip";
+
 const addSourceArchiveLink = () => {
   if (document.querySelector("[data-source-archive-link]")) {
     return;
@@ -45,7 +48,7 @@ const addSourceArchiveLink = () => {
   const link = document.createElement("a");
   link.className = "source-archive-link";
   link.dataset.sourceArchiveLink = "";
-  link.href = "/source.zip";
+  link.href = DOWNLOAD_PATH;
   link.download = "";
   link.textContent = "Download source";
   link.title = "Download the ESPHome source archive";

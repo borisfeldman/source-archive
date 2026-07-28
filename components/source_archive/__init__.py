@@ -5,6 +5,7 @@ import io
 import json
 import logging
 from pathlib import Path
+import re
 import zipfile
 
 import esphome.codegen as cg
@@ -28,6 +29,9 @@ SourceArchive = source_archive_ns.class_("SourceArchive", cg.Component)
 
 LOGGER = logging.getLogger(__name__)
 
+# Interpolated unquoted into the Content-Disposition header, so keep it boring.
+_FILENAME_RE = re.compile(r"^[A-Za-z0-9._-]+\.zip$")
+
 
 def _validate_download_path(value: str) -> str:
     value = cv.string_strict(value)
@@ -38,8 +42,11 @@ def _validate_download_path(value: str) -> str:
 
 def _validate_filename(value: str) -> str:
     value = cv.string_strict(value)
-    if Path(value).name != value or not value.lower().endswith(".zip"):
-        raise cv.Invalid("filename must be a plain filename ending in .zip")
+    if not _FILENAME_RE.match(value):
+        raise cv.Invalid(
+            "filename must end in .zip and use only letters, digits, dots, "
+            "dashes and underscores"
+        )
     return value
 
 
