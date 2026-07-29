@@ -161,7 +161,7 @@ The button fetches the archive and checks the response before saving it. If the 
 answers with an error it turns red and reports **Source unavailable** rather than saving the
 error response to disk; the reason is in the `title` attribute and the browser console.
 
-<!-- screenshot: Download source button, close-up -->
+![The Download source button pinned to the corner of the device web interface, below the OTA Update section](images/download-source-button.png)
 
 ### Wiring the script up yourself
 
