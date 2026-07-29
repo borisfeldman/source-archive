@@ -42,11 +42,16 @@ _FILENAME_RE = re.compile(r"^[A-Za-z0-9._-]+\.zip$")
 
 _DOWNLOAD_PATH_RE = re.compile(r'^const DOWNLOAD_PATH = "[^"]*";$', re.MULTILINE)
 
+# web_server registers its handler first, so it would silently win these routes.
+_RESERVED_DOWNLOAD_PATHS = frozenset({"/", "/0.css", "/0.js", "/events"})
+
 
 def _validate_download_path(value: str) -> str:
     value = cv.string_strict(value)
     if not value.startswith("/") or "?" in value or "#" in value:
         raise cv.Invalid("download_path must be an absolute URL path")
+    if value in _RESERVED_DOWNLOAD_PATHS:
+        raise cv.Invalid(f"'{value}' is already served by web_server, pick another path")
     return value
 
 
@@ -65,6 +70,11 @@ def _validate_source_path(value: str) -> str:
     path = Path(value)
     if path.is_absolute() or ".." in path.parts:
         raise cv.Invalid("source archive files must stay inside the config directory")
+    if path.parts and path.parts[0] == ".esphome":
+        raise cv.Invalid(
+            "refusing to embed '.esphome': it holds ESPHome's working state, not your "
+            "configuration"
+        )
     if path.name == "secrets.yaml":
         raise cv.Invalid(
             "refusing to embed secrets.yaml: the archive is served over HTTP and "

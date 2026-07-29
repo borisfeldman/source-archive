@@ -1,6 +1,7 @@
 #include "source_archive.h"
 
 #include "esphome/core/log.h"
+#include "esphome/core/progmem.h"
 
 namespace esphome {
 namespace source_archive {

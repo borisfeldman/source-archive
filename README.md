@@ -13,7 +13,10 @@ matches the running firmware.
 > Requires ESPHome 2026.2.0 or newer, and the
 > [Web Server](https://esphome.io/components/web_server/) component.
 
-<!-- screenshot: device web interface with the Download source button -->
+> [!WARNING]
+> The archive is served to anyone who can reach the device. Read
+> [Keeping the archive private](#keeping-the-archive-private) before enabling it on a node
+> whose configuration holds credentials.
 
 ```yaml
 # Example configuration entry
@@ -41,7 +44,9 @@ containing `bedroom-lamp.yaml`, both packages and a manifest.
 - **include_current_config** (*Optional*, boolean): Also embed the YAML file being
   compiled. Defaults to `true`.
 - **download_path** (*Optional*, string): The URL path the archive is served from. Must be
-  absolute and must not contain a query string or fragment. Defaults to `/source.zip`.
+  absolute, must not contain a query string or fragment, and must not be one of the paths
+  `web_server` already answers (`/`, `/0.css`, `/0.js`, `/events`). Defaults to
+  `/source.zip`.
 - **filename** (*Optional*, string): The name the browser saves the download as. Must end
   in `.zip` and use only letters, digits, dots, dashes and underscores. Defaults to
   `esphome-source.zip`.
@@ -68,10 +73,35 @@ Something has to end up in the archive, so setting `include_current_config: fals
 listing any `files:` is rejected.
 
 Paths must stay inside the configuration directory: absolute paths and `..` are rejected,
-and every file has to exist when the configuration is validated. Component sources fetched
-by `external_components` live under `.esphome/` and therefore cannot be listed. Duplicates
-are dropped, so naming the current configuration file explicitly alongside
-`include_current_config: true` is harmless.
+and every file has to exist when the configuration is validated. `.esphome/` is rejected
+too, so the component sources `external_components` downloads and the rest of ESPHome's
+working state stay out of the archive. Duplicates are dropped, so naming the current
+configuration file explicitly alongside `include_current_config: true` is harmless.
+
+## Keeping the archive private
+
+A device page has no login by default, and neither does the archive. Anything that can
+reach the device can read your configuration, so give `web_server` credentials before
+enabling the component on a node that holds any:
+
+```yaml
+web_server:
+  auth:
+    username: !secret web_username
+    password: !secret web_password
+```
+
+The archive inherits this automatically — `web_server_base` wraps every handler registered
+with it in the same authentication middleware, so there is no separate switch here. Note
+that `web_server` speaks plain HTTP, so credentials are only as private as the network
+they cross.
+
+What gets embedded is the YAML as you wrote it, not as ESPHome resolved it: `!secret`
+references are still unresolved references in the archive, and `secrets.yaml` is refused
+outright if you try to list it. Credentials written inline are the real hazard. A literal
+`password:` under `wifi:`, an `api:` encryption key, an `ota:` password or MQTT
+credentials are copied in verbatim and handed to whoever asks. Move them into
+`secrets.yaml` first.
 
 ## Archive contents
 
