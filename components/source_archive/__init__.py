@@ -19,7 +19,7 @@ DEPENDENCIES = ["web_server"]
 AUTO_LOAD = ["web_server_base"]
 
 # Bump together with the git tag that releases it.
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 
 CONF_DOWNLOAD_BUTTON = "download_button"
 CONF_DOWNLOAD_PATH = "download_path"
